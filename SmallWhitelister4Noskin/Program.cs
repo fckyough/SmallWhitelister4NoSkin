@@ -14,7 +14,7 @@ namespace SmallWhitelister4Noskin
         public static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
-            const string constNoskinName = "$noskin";
+            const string constNoskinName = "#noskin";
             const string wadExtractPath = "wad-extract.exe";
 
             #region "Raw" strings
@@ -150,14 +150,14 @@ namespace SmallWhitelister4Noskin
             
             var noskinVer = config.NoSkinPath.Split(new[] { @"\installed\" }, StringSplitOptions.None)[1]
                 .Split(new []{ '_' }, StringSplitOptions.RemoveEmptyEntries);
-            var noskinName = noskinVer.Length == 1 ? constNoskinName : $"{constNoskinName}_{noskinVer[1]}";
+            var noskinProperName = noskinVer.Length == 1 ? constNoskinName : $"{constNoskinName}_{noskinVer[1]}";
             
             var isFolderChanged = false;
             try
             {
-                if (config.NoSkinPath != $@"{installedPath}\{noskinName}")
+                if (config.NoSkinPath != $@"{installedPath}\{noskinProperName}")
                 {
-                    Directory.Move(config.NoSkinPath, $@"{installedPath}\{noskinName}");
+                    Directory.Move(config.NoSkinPath, $@"{installedPath}\{noskinProperName}");
                     isFolderChanged = true;
                 }
             }
@@ -165,8 +165,8 @@ namespace SmallWhitelister4Noskin
             {
                 ReportCsLoLInUse(ex);
             }
-            config.NoSkinPath = $@"{installedPath}\{noskinName}";
-            var noskinWorkingPath = $@"{installedPath}\{noskinName}\WAD";
+            config.NoSkinPath = $@"{installedPath}\{noskinProperName}";
+            var noskinWorkingPath = $@"{installedPath}\{noskinProperName}\WAD";
             var document = TomletMain.DocumentFrom(config);
             if (!((TomlBoolean)document.Entries[nameof(Config.DisplaySecretArt)]).Value)
             {
