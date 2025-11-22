@@ -242,7 +242,10 @@ namespace SmallWhitelister4Noskin
 
             #region Whitelist characters
             var wlStr = string.Join(", ", config.Characters.Select(character => character.Name));
+            Console.WriteLine();
+            Console.WriteLine();
             Console.WriteLine($"[INF] Whitelisting: [{wlStr}]");
+            Console.WriteLine();
             var fullWhitelist = config.Characters.Where(character => character.FullyWhitelist).ToArray();
             var skinsToWhitelist = config.Characters.Except(fullWhitelist);
 
