@@ -227,7 +227,7 @@ namespace SmallWhitelister4Noskin
                 File.WriteAllText(Config.Path, CreateTemplateSaveData(config));
                 
                 Console.WriteLine();
-                Console.WriteLine($"[INF] Finished restoring! Total time: [{stopwatch.Elapsed:mm\\:ss\\.ff}]");
+                Console.WriteLine($@"[INF] Finished restoring! Total time: [{stopwatch.Elapsed:mm\:ss\.ff}]");
                 if (config.DisplaySecretArt)
                 {
                     Console.WriteLine();
@@ -237,8 +237,7 @@ namespace SmallWhitelister4Noskin
                 Console.ReadKey();
                 return;
             }
-            Console.WriteLine();
-            Console.WriteLine($"[INF] Finished restoring! Total time: [{stopwatch.Elapsed:mm\\:ss\\.ff}]");
+            Console.WriteLine($@"[INF] Finished restoring! Total time: [{stopwatch.Elapsed:mm\:ss\.ff}]");
             #endregion
 
             #region Whitelist characters
@@ -291,7 +290,7 @@ namespace SmallWhitelister4Noskin
                     continue;
                 }
 
-                Console.WriteLine($"[INF] Finished {character.Name}: Time [{swInd.Elapsed:mm\\:ss\\.ff}]");
+                Console.WriteLine($@"[INF] Finished {character.Name}: Time [{swInd.Elapsed:mm\:ss\.ff}]");
                 Console.WriteLine();
             }
             #endregion
@@ -380,7 +379,7 @@ namespace SmallWhitelister4Noskin
             #endregion
 
             Console.WriteLine();
-            Console.WriteLine($"[INF] Finished Whitelist! Total time: [{stopwatch.Elapsed:mm\\:ss\\.ff}]");
+            Console.WriteLine($@"[INF] Finished Whitelist! Total time: [{stopwatch.Elapsed:mm\:ss\.ff}]");
             if (config.DisplaySecretArt)
             {
                 Console.WriteLine();
@@ -469,6 +468,7 @@ namespace SmallWhitelister4Noskin
                 if (jsonString.Contains("YesSkin"))
                 {
                     Console.WriteLine("[INF] Found path to NoSKin automatically");
+                    Console.WriteLine();
                     return modPath;
                 }
             }
