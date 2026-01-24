@@ -476,6 +476,7 @@ namespace SmallWhitelister4Noskin
                 }
             }
             Console.WriteLine("[ERR] You don't have NoSkin installed or your NoSkin installation is outdated");
+            Console.ReadKey();
             Environment.Exit(1);
             return string.Empty;
         }
