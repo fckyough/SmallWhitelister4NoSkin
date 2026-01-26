@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Tomlet;
 using Tomlet.Models;
 
@@ -78,320 +79,344 @@ namespace SmallWhitelister4Noskin
     = *               .      %=  =====+===                  :                             :        #----=----------+=-::
 #    :%                    %@@ =     -=====                 -   :                      :+*       %*---==----------==-:-.";
             #endregion
-            
-            Console.WriteLine(nameArt);
-            Console.WriteLine();
-            Console.WriteLine("[INF] Starting Professional Skin Whitelisting Software by Rev\u2122");
-            Console.WriteLine();
-            
-            #region Process files e.g. config
-            var configString = string.Empty;
-            var config = new Config();
 
-            if (File.Exists(Config.Path))
+            try
             {
-                configString = File.ReadAllText(Config.Path);
-                try
+                Console.WriteLine(nameArt);
+                Console.WriteLine();
+                Console.WriteLine("[INF] Starting Professional Skin Whitelisting Software by Rev\u2122");
+                Console.WriteLine();
+            
+                #region Process files e.g. config
+                var configString = string.Empty;
+                var config = new Config();
+
+                if (File.Exists(Config.Path))
                 {
-                    var doc = TomlParser.ParseFile(Config.Path);
-                    if (!doc.Entries.ContainsKey(nameof(Config.Characters)))
+                    configString = File.ReadAllText(Config.Path);
+                    try
                     {
-                        doc.Entries[nameof(Config.Characters)] = new TomlArray();
+                        var doc = TomlParser.ParseFile(Config.Path);
+                        if (!doc.Entries.ContainsKey(nameof(Config.Characters)))
+                        {
+                            doc.Entries[nameof(Config.Characters)] = new TomlArray();
+                        }
+                        config = TomletMain.To<Config>(doc);
                     }
-                    config = TomletMain.To<Config>(doc);
+                    catch (Exception e)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine(e);
+                        Console.WriteLine();
+                        Console.WriteLine("[ERR] Invalid config.toml, please correct errors or delete the file to generate the template and restart the whitelister");
+                        Console.WriteLine("Press any key to exit...");
+                        Console.ReadKey();
+                        return;
+                    }
                 }
-                catch (Exception e)
+
+                //var arr1 = tomlTemplate.ToCharArray();
+                //var arr2 = configString.ToCharArray();
+
+                if (configString == tomlTemplate || string.IsNullOrWhiteSpace(configString))
                 {
-                    Console.WriteLine();
-                    Console.WriteLine(e);
-                    Console.WriteLine();
-                    Console.WriteLine("[ERR] Invalid config.toml, please correct errors or delete the file to generate the template and restart the whitelister");
+                    File.WriteAllText(Config.Path, tomlTemplate);
+                    Console.WriteLine("[WRN] Please configure your config.toml and restart the whitelister");
                     Console.WriteLine("Press any key to exit...");
                     Console.ReadKey();
                     return;
                 }
-            }
+                #endregion
 
-            //var arr1 = tomlTemplate.ToCharArray();
-            //var arr2 = configString.ToCharArray();
-
-            if (configString == tomlTemplate || string.IsNullOrWhiteSpace(configString))
-            {
-                File.WriteAllText(Config.Path, tomlTemplate);
-                Console.WriteLine("[WRN] Please configure your config.toml and restart the whitelister");
-                Console.WriteLine("Press any key to exit...");
-                Console.ReadKey();
-                return;
-            }
-            #endregion
-
-            #region Check and set paths
-            if (string.IsNullOrWhiteSpace(config.NoSkinPath))
-            {
-                config.NoSkinPath = GetNoSkinPath();
-            }
-
-            if (!Directory.Exists(config.NoSkinPath))
-            {
-                Console.WriteLine("[ERR] Your NoSkin path does not exist!");
-                config.NoSkinPath = GetNoSkinPath();
-            }
-            
-            var test = $@"{config.NoSkinPath}\WAD".ToLower();
-            var test2 = $@"{config.NoSkinPath}\META".ToLower();
-            if (!Directory.Exists(test) || !Directory.Exists(test2))
-            {
-                Console.WriteLine("[ERR] Your NoSkin path is not a valid mod folder!");
-                config.NoSkinPath = GetNoSkinPath();
-            }
-            
-            var cslolPath = config.NoSkinPath.Split(new[] { @"\installed\" }, StringSplitOptions.None)[0];
-            var installedPath = cslolPath + @"\installed";
-            
-            var noskinVer = config.NoSkinPath.Split(new[] { @"\installed\" }, StringSplitOptions.None)[1]
-                .Split(new []{ '_' }, StringSplitOptions.RemoveEmptyEntries);
-            var noskinProperName = noskinVer.Length == 1 ? constNoskinName : $"{constNoskinName}_{noskinVer[1]}";
-            
-            var isFolderChanged = false;
-            try
-            {
-                if (config.NoSkinPath != $@"{installedPath}\{noskinProperName}")
+                #region Check and set paths
+                if (string.IsNullOrWhiteSpace(config.NoSkinPath))
                 {
-                    Directory.Move(config.NoSkinPath, $@"{installedPath}\{noskinProperName}");
-                    isFolderChanged = true;
+                    config.NoSkinPath = GetNoSkinPath();
                 }
-            }
-            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
-            {
-                ReportCsLoLInUse(ex);
-            }
-            config.NoSkinPath = $@"{installedPath}\{noskinProperName}";
-            var noskinWorkingPath = $@"{installedPath}\{noskinProperName}\WAD";
-            var document = TomletMain.DocumentFrom(config);
-            if (!((TomlBoolean)document.Entries[nameof(Config.DisplaySecretArt)]).Value)
-            {
-                document.Entries.Remove(nameof(config.DisplaySecretArt));
-            }
-            File.WriteAllText(Config.Path, document.SerializedValue);
-            #endregion
+
+                if (!Directory.Exists(config.NoSkinPath))
+                {
+                    Console.WriteLine("[ERR] Your NoSkin path does not exist!");
+                    config.NoSkinPath = GetNoSkinPath();
+                }
             
-            #region Restore characters
-            Console.WriteLine("[INF] Restoring all characters from whitelisting");
-            Console.WriteLine();
-            var stopwatch = Stopwatch.StartNew();
+                var test = $@"{config.NoSkinPath}\WAD".ToLower();
+                var test2 = $@"{config.NoSkinPath}\META".ToLower();
+                if (!Directory.Exists(test) || !Directory.Exists(test2))
+                {
+                    Console.WriteLine("[ERR] Your NoSkin path is not a valid mod folder!");
+                    config.NoSkinPath = GetNoSkinPath();
+                }
             
-            foreach (var wadClientPath in Directory.GetFiles(noskinWorkingPath, "*.whitelisted"))
-            {
+                var cslolPath = config.NoSkinPath.Split(new[] { @"\installed\" }, StringSplitOptions.None)[0];
+                var installedPath = cslolPath + @"\installed";
+            
+                var noskinVer = config.NoSkinPath.Split(new[] { @"\installed\" }, StringSplitOptions.None)[1]
+                    .Split(new []{ '_' }, StringSplitOptions.RemoveEmptyEntries);
+                var noskinProperName = noskinVer.Length == 1 ? constNoskinName : $"{constNoskinName}_{noskinVer[1]}";
+            
+                var isFolderChanged = false;
                 try
                 {
-                    File.Move(wadClientPath, wadClientPath.Replace(".whitelisted", string.Empty));
+                    if (config.NoSkinPath != $@"{installedPath}\{noskinProperName}")
+                    {
+                        Directory.Move(config.NoSkinPath, $@"{installedPath}\{noskinProperName}");
+                        isFolderChanged = true;
+                    }
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
                     ReportCsLoLInUse(ex);
                 }
-            }
-            foreach (var wadPath in Directory.GetDirectories(noskinWorkingPath, "*.whitelisted"))
-            {
-                try
+                config.NoSkinPath = $@"{installedPath}\{noskinProperName}";
+                var noskinWorkingPath = $@"{installedPath}\{noskinProperName}\WAD";
+                var document = TomletMain.DocumentFrom(config);
+                if (!((TomlBoolean)document.Entries[nameof(Config.DisplaySecretArt)]).Value)
                 {
-                    Directory.Move(wadPath, wadPath.Replace(".whitelisted", string.Empty));
+                    document.Entries.Remove(nameof(config.DisplaySecretArt));
                 }
-                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                File.WriteAllText(Config.Path, document.SerializedValue);
+                #endregion
+            
+                #region Restore characters
+                Console.WriteLine("[INF] Restoring all characters from whitelisting");
+                Console.WriteLine();
+                var stopwatch = Stopwatch.StartNew();
+            
+                foreach (var wadClientPath in Directory.GetFiles(noskinWorkingPath, "*.whitelisted"))
                 {
-                    ReportCsLoLInUse(ex);
+                    try
+                    {
+                        File.Move(wadClientPath, wadClientPath.Replace(".whitelisted", string.Empty));
+                    }
+                    catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                    {
+                        ReportCsLoLInUse(ex);
+                    }
                 }
-            }
+                foreach (var wadPath in Directory.GetDirectories(noskinWorkingPath, "*.whitelisted"))
+                {
+                    try
+                    {
+                        Directory.Move(wadPath, wadPath.Replace(".whitelisted", string.Empty));
+                    }
+                    catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                    {
+                        ReportCsLoLInUse(ex);
+                    }
+                }
 
-            foreach (var wadPath in Directory.GetDirectories(noskinWorkingPath, "*.wad"))
-            {
-                foreach (var characterPath in Directory.GetDirectories($@"{wadPath}\data\characters"))
+                foreach (var wadPath in Directory.GetDirectories(noskinWorkingPath, "*.wad"))
                 {
-                    foreach (var binPath in Directory.GetFiles($@"{characterPath}\skins", "*.whitelisted"))
+                    foreach (var characterPath in Directory.GetDirectories($@"{wadPath}\data\characters"))
+                    {
+                        foreach (var binPath in Directory.GetFiles($@"{characterPath}\skins", "*.whitelisted"))
+                        {
+                            try
+                            {
+                                Directory.Move(binPath, binPath.Replace(".whitelisted", string.Empty));
+                            }
+                            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                            {
+                                ReportCsLoLInUse(ex);
+                            }
+                        }
+                    }
+                }
+
+                if (config.Characters.Length == 0)
+                {
+                    Console.WriteLine("[WRN] No characters found for whitelisting, restoring config.toml to template");
+                    File.WriteAllText(Config.Path, CreateTemplateSaveData(config));
+                
+                    Console.WriteLine();
+                    Console.WriteLine($@"[INF] Finished restoring! Total time: [{stopwatch.Elapsed:mm\:ss\.ff}]");
+                    if (config.DisplaySecretArt)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine(girlsKissing);
+                    }
+                    Console.WriteLine("Press any key to exit...");
+                    Console.ReadKey();
+                    return;
+                }
+                Console.WriteLine($@"[INF] Finished restoring! Total time: [{stopwatch.Elapsed:mm\:ss\.ff}]");
+                #endregion
+
+                #region Whitelist characters
+                foreach (var character in config.Characters)
+                {
+                    var regex = new Regex(@"[\W_]+");
+                    character.Name = regex.Replace(character.Name.Trim(), string.Empty);
+                    if (character.Name.ToLower() == "wukong")
+                    {
+                        character.Name = "MonkeyKing";
+                    }
+                }
+                var wlStr = string.Join(", ", config.Characters.Select(character => character.Name));
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine($"[INF] Whitelisting: [{wlStr}]");
+                Console.WriteLine();
+                
+                var fullWhitelist = config.Characters.Where(character => character.FullyWhitelist).ToArray();
+                var skinsToWhitelist = config.Characters.Except(fullWhitelist);
+
+                #region Fully whitelisted
+                foreach (var character in fullWhitelist)
+                {
+                    var swInd = Stopwatch.StartNew();
+                    Console.WriteLine($"[INF] Whitelisting: {character.Name}");
+                    var path = $@"{noskinWorkingPath}\{character.Name}.wad.client";
+                    var altPath = $@"{noskinWorkingPath}\{character.Name}.wad";
+                    var wlPath = $@"{noskinWorkingPath}\{character.Name}.wad.client.whitelisted";
+                    var wlAltPath = $@"{noskinWorkingPath}\{character.Name}.wad.whitelisted";
+                    if (File.Exists(path))
                     {
                         try
                         {
-                            Directory.Move(binPath, binPath.Replace(".whitelisted", string.Empty));
+                            File.Move(path, $"{path}.whitelisted");
                         }
                         catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                         {
                             ReportCsLoLInUse(ex);
                         }
                     }
-                }
-            }
+                    else if (Directory.Exists(altPath))
+                    {
+                        try
+                        {
+                            Directory.Move(altPath, $"{altPath}.whitelisted");
+                        }
+                        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                        {
+                            ReportCsLoLInUse(ex);
+                        }
+                    }
+                    else if (File.Exists(wlPath) || Directory.Exists(wlAltPath))
+                    {
+                        Console.WriteLine($"[INF] {character.Name} is already whitelisted");
+                        Console.WriteLine();
+                        continue;
+                    }
+                    else 
+                    {
+                        Console.WriteLine($"[WRN] Failed to find {character.Name}. Skipping");
+                        Console.WriteLine();
+                        continue;
+                    }
 
-            if (config.Characters.Length == 0)
-            {
-                Console.WriteLine("[WRN] No characters found for whitelisting, restoring config.toml to template");
-                File.WriteAllText(Config.Path, CreateTemplateSaveData(config));
+                    Console.WriteLine($@"[INF] Finished {character.Name}: Time [{swInd.Elapsed:mm\:ss\.ff}]");
+                    Console.WriteLine();
+                }
+                #endregion
+
+                #region Whitelist separate skins
+                foreach (var character in skinsToWhitelist)
+                {
+                    if(character.SkinIds.Length == 0) continue;
                 
+                    var swInd = Stopwatch.StartNew();
+                    var skinStr = string.Join(", ", character.SkinIds.Select(skinId => $"Skin{skinId}"));
+                    var path = $@"{noskinWorkingPath}\{character.Name}.wad.client";
+                    if (File.Exists(path))
+                    {
+                        using(var pProcess = new Process())
+                        {
+                            pProcess.StartInfo.FileName = wadExtractPath;
+                            pProcess.StartInfo.Arguments = $@"{noskinWorkingPath}\{character.Name}.wad.client";
+                            pProcess.StartInfo.RedirectStandardOutput = false;
+                            pProcess.StartInfo.UseShellExecute = false;
+                            pProcess.StartInfo.CreateNoWindow = true;
+                            pProcess.StartInfo.WindowStyle = ProcessWindowStyle.Normal;
+                            pProcess.Start();
+                            Console.WriteLine($"[INF] Extracting: {character.Name}");
+                            pProcess.WaitForExit();
+                        }
+                        File.Delete(path);
+                    }
+                    else if (!Directory.Exists($@"{noskinWorkingPath}\{character.Name}.wad"))
+                    {
+                        Console.WriteLine($"[WRN] Failed to find {character.Name}. Skipping");
+                        continue;
+                    }
+
+                    Console.WriteLine($"[INF] Whitelisting: [{skinStr}] for {character.Name}");
+                    foreach (var characterPath in Directory.GetDirectories(
+                                 $@"{noskinWorkingPath}\{character.Name}.wad\data\characters"))
+                    {
+                        var characterName = characterPath.Replace($@"{noskinWorkingPath}\{character.Name}.wad\data\characters\", string.Empty);
+                        var awlList = new List<string>();
+                        var ftfList = new List<string>();
+                        foreach (var skin in character.SkinIds)
+                        {
+                            var path1 = $@"{characterPath}\skins\skin{skin}.bin";
+                            var wlPath1 = $@"{characterPath}\skins\skin{skin}.bin.whitelisted";
+                            if (File.Exists(wlPath1))
+                            {
+                                awlList.Add($"Skin{skin}");
+                                continue;
+                            }
+
+                            if (!File.Exists(path1))
+                            {
+                                ftfList.Add($"Skin{skin}");
+                                continue;
+                            }
+
+                            try
+                            {
+                                File.Move(path1, $"{path1}.whitelisted");
+                            }
+                            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                            {
+                                ReportCsLoLInUse(ex);
+                            }
+                        }
+
+                        if (awlList.Count > 0)
+                        {
+                            Console.WriteLine(characterName.ToLower() == character.Name.ToLower()
+                                ? $"[INF] Already whitelisted: [{string.Join(", ", awlList)}] for {character.Name} "
+                                : $"[INF] Already whitelisted: [{string.Join(", ", awlList)}] for {characterName} ({character.Name})");
+                        }
+                        if (ftfList.Count > 0)
+                        {
+                            Console.WriteLine(characterName.ToLower() == character.Name.ToLower()
+                                ? $"[INF] Failed to find: [{string.Join(", ", ftfList)}] for {character.Name}"
+                                : $"[INF] Failed to find: [{string.Join(", ", ftfList)}] for {characterName} ({character.Name})");
+                        }
+                    }
+
+                    Console.WriteLine($@"[INF] Finished whitelisting: [{skinStr}] for {character.Name}; Time [{swInd.Elapsed:mm\:ss\.ff}]");
+                    Console.WriteLine();
+                }
+                #endregion
+                #endregion
+
                 Console.WriteLine();
-                Console.WriteLine($@"[INF] Finished restoring! Total time: [{stopwatch.Elapsed:mm\:ss\.ff}]");
+                Console.WriteLine($@"[INF] Finished Whitelist! Total time: [{stopwatch.Elapsed:mm\:ss\.ff}]");
                 if (config.DisplaySecretArt)
                 {
                     Console.WriteLine();
                     Console.WriteLine(girlsKissing);
                 }
-                Console.WriteLine("Press any key to exit...");
-                Console.ReadKey();
-                return;
-            }
-            Console.WriteLine($@"[INF] Finished restoring! Total time: [{stopwatch.Elapsed:mm\:ss\.ff}]");
-            #endregion
-
-            #region Whitelist characters
-            var wlStr = string.Join(", ", config.Characters.Select(character => character.Name));
-            Console.WriteLine();
-            Console.WriteLine();
-            Console.WriteLine($"[INF] Whitelisting: [{wlStr}]");
-            Console.WriteLine();
-            var fullWhitelist = config.Characters.Where(character => character.FullyWhitelist).ToArray();
-            var skinsToWhitelist = config.Characters.Except(fullWhitelist);
-
-            #region Fully whitelisted
-            foreach (var character in fullWhitelist)
-            {
-                var swInd = Stopwatch.StartNew();
-                Console.WriteLine($"[INF] Whitelisting: {character.Name}");
-                var path = $@"{noskinWorkingPath}\{character.Name}.wad.client";
-                var altPath = $@"{noskinWorkingPath}\{character.Name}.wad";
-                var wlPath = $@"{noskinWorkingPath}\{character.Name}.wad.client.whitelisted";
-                var wlAltPath = $@"{noskinWorkingPath}\{character.Name}.wad.whitelisted";
-                if (File.Exists(path))
+                if (isFolderChanged)
                 {
-                    try
-                    {
-                        File.Move(path, $"{path}.whitelisted");
-                    }
-                    catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
-                    {
-                        ReportCsLoLInUse(ex);
-                    }
-                }
-                else if (Directory.Exists(altPath))
-                {
-                    try
-                    {
-                        Directory.Move(altPath, $"{altPath}.whitelisted");
-                    }
-                    catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
-                    {
-                        ReportCsLoLInUse(ex);
-                    }
-                }
-                else if (File.Exists(wlPath) || Directory.Exists(wlAltPath))
-                {
-                    Console.WriteLine($"[INF] {character.Name} is already whitelisted");
                     Console.WriteLine();
-                    continue;
+                    Console.WriteLine("[ALERT] ATTENTION! You need to restart CsLoL Manager! Or else KAPUTT!!");
                 }
-                else 
-                {
-                    Console.WriteLine($"[WRN] Failed to find {character.Name}. Skipping");
-                    Console.WriteLine();
-                    continue;
-                }
-
-                Console.WriteLine($@"[INF] Finished {character.Name}: Time [{swInd.Elapsed:mm\:ss\.ff}]");
-                Console.WriteLine();
             }
-            #endregion
-
-            #region Whitelist separate skins
-            foreach (var character in skinsToWhitelist)
-            {
-                if(character.SkinIds.Length == 0) continue;
-                
-                var swInd = Stopwatch.StartNew();
-                var skinStr = string.Join(", ", character.SkinIds.Select(skinId => $"Skin{skinId}"));
-                var path = $@"{noskinWorkingPath}\{character.Name}.wad.client";
-                if (File.Exists(path))
-                {
-                    using(var pProcess = new Process())
-                    {
-                        pProcess.StartInfo.FileName = wadExtractPath;
-                        pProcess.StartInfo.Arguments = $@"{noskinWorkingPath}\{character.Name}.wad.client";
-                        pProcess.StartInfo.RedirectStandardOutput = false;
-                        pProcess.StartInfo.UseShellExecute = false;
-                        pProcess.StartInfo.CreateNoWindow = true;
-                        pProcess.StartInfo.WindowStyle = ProcessWindowStyle.Normal;
-                        pProcess.Start();
-                        Console.WriteLine($"[INF] Extracting: {character.Name}");
-                        pProcess.WaitForExit();
-                    }
-                    File.Delete(path);
-                }
-                else if (!Directory.Exists($@"{noskinWorkingPath}\{character.Name}.wad"))
-                {
-                    Console.WriteLine($"[WRN] Failed to find {character.Name}. Skipping");
-                    continue;
-                }
-
-                Console.WriteLine($"[INF] Whitelisting: [{skinStr}] for {character.Name}");
-                foreach (var characterPath in Directory.GetDirectories(
-                             $@"{noskinWorkingPath}\{character.Name}.wad\data\characters"))
-                {
-                    var characterName = characterPath.Replace($@"{noskinWorkingPath}\{character.Name}.wad\data\characters\", string.Empty);
-                    var awlList = new List<string>();
-                    var ftfList = new List<string>();
-                    foreach (var skin in character.SkinIds)
-                    {
-                        var path1 = $@"{characterPath}\skins\skin{skin}.bin";
-                        var wlPath1 = $@"{characterPath}\skins\skin{skin}.bin.whitelisted";
-                        if (File.Exists(wlPath1))
-                        {
-                            awlList.Add($"Skin{skin}");
-                            continue;
-                        }
-
-                        if (!File.Exists(path1))
-                        {
-                            ftfList.Add($"Skin{skin}");
-                            continue;
-                        }
-
-                        try
-                        {
-                            File.Move(path1, $"{path1}.whitelisted");
-                        }
-                        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
-                        {
-                            ReportCsLoLInUse(ex);
-                        }
-                    }
-
-                    if (awlList.Count > 0)
-                    {
-                        Console.WriteLine(characterName.ToLower() == character.Name.ToLower()
-                            ? $"[INF] Already whitelisted: [{string.Join(", ", awlList)}] for {character.Name} "
-                            : $"[INF] Already whitelisted: [{string.Join(", ", awlList)}] for {characterName} ({character.Name})");
-                    }
-                    if (ftfList.Count > 0)
-                    {
-                        Console.WriteLine(characterName.ToLower() == character.Name.ToLower()
-                            ? $"[INF] Failed to find: [{string.Join(", ", ftfList)}] for {character.Name}"
-                            : $"[INF] Failed to find: [{string.Join(", ", ftfList)}] for {characterName} ({character.Name})");
-                    }
-                }
-
-                Console.WriteLine($@"[INF] Finished whitelisting: [{skinStr}] for {character.Name}; Time [{swInd.Elapsed:mm\:ss\.ff}]");
-                Console.WriteLine();
-            }
-            #endregion
-            #endregion
-
-            Console.WriteLine();
-            Console.WriteLine($@"[INF] Finished Whitelist! Total time: [{stopwatch.Elapsed:mm\:ss\.ff}]");
-            if (config.DisplaySecretArt)
+            catch (Exception e)
             {
                 Console.WriteLine();
-                Console.WriteLine(girlsKissing);
-            }
-            if (isFolderChanged)
-            {
+                Console.WriteLine("[ERR] Unknown error occured!");
                 Console.WriteLine();
-                Console.WriteLine("[ALERT] ATTENTION! You need to restart CsLoL Manager! Or else KAPUTT!!");
+                Console.WriteLine("Printing error details:");
+                Console.WriteLine();
+                Console.WriteLine(e);
+                Console.WriteLine();
+                Console.WriteLine();
             }
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();

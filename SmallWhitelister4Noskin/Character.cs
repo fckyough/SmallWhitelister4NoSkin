@@ -13,7 +13,7 @@ namespace SmallWhitelister4Noskin
             FullyWhitelist = fullyWhitelist;
             SkinIds = skinIds ?? Array.Empty<int>();
         }
-        public string Name { get; }
+        public string Name { get; set; }
         public bool FullyWhitelist { get; }
         public int[] SkinIds { get; }
 
