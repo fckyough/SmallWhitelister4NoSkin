@@ -247,7 +247,7 @@ namespace SmallWhitelister4Noskin
                 foreach (var character in config.Characters)
                 {
                     var regex = new Regex(@"[\W_]+");
-                    character.Name = regex.Replace(character.Name.Trim(), string.Empty);
+                    character.Name = regex.Replace(character.Name, string.Empty);
                     if (character.Name.ToLower() == "wukong")
                     {
                         character.Name = "MonkeyKing";
