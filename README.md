@@ -6,7 +6,7 @@ Automatic whitelisting of skins for [Noskin mod](https://runeforge.dev/mods/278e
 Made this for myself then sorta remade for the general public for funzies.
 
 ## Setup and use
-Drop Noskin into cslol. You then put characters and skin ids in the config(template included) and run the program. You can change the skins and it should enable/disable them flawlessly.
+Drop Noskin into cslol. You then put champion names and skin ids in the config(template included) and run the program. You can edit/remove the skins/champions whitelisted and it should enable/disable them flawlessly.
 
 ## Building from source
 Install .NET framework 4.8, then your IDE should auto restore nuget pkg, if it doesnt run `restore nuget`.
